@@ -1,17 +1,16 @@
-import React from "react";
 import { useBoard } from "../Board";
 
 import "./grid.less";
 
-export const Grid = () => {
-  const [, tileCount] = useBoard();
+export const Grid = (): JSX.Element => {
+  const [, tileCount]: [number, number] = useBoard();
 
   const renderGrid = () => {
     const length = tileCount * tileCount;
-    const cells = [] as JSX.Element[];
+    const cells: JSX.Element[] = [];
 
     for (let index = 0; index < length; index += 1) {
-      cells.push(<div key={`${index}`} className={`grid-cell`} />);
+      cells.push(<div key={`${index}`} className="grid-cell" />);
     }
 
     return cells;
