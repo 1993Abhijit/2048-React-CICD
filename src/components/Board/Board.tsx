@@ -1,4 +1,3 @@
-import React from "react";
 import { BoardProvider } from "./context/BoardContext";
 import { boardMargin, tileCount as defaultTileCount } from "./models/Board";
 import { Grid } from "../Grid";
@@ -10,11 +9,15 @@ type Props = {
   tileCountPerRow: number;
 };
 
-export const Board = ({ tiles, tileCountPerRow = defaultTileCount }: Props) => {
+export const Board = ({
+  tiles,
+  tileCountPerRow = defaultTileCount,
+}: Props): JSX.Element => {
   // container width = tile width * tile count per row
-  const containerWidth = tileTotalWidth * tileCountPerRow;
+  const containerWidth: number = tileTotalWidth * tileCountPerRow;
+
   // board width = container width + margin
-  const boardWidth = containerWidth + boardMargin;
+  const boardWidth: number = containerWidth + boardMargin;
 
   // render all tiles on the board
   const tileList = tiles.map(({ id, ...restProps }) => (
