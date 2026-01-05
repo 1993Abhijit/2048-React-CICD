@@ -1,7 +1,9 @@
-# ---------- Build Stage ----------
-FROM node:18-alpine AS build
+FROM node:18
 
 WORKDIR /app
+
+# Fix OpenSSL issue for webpack
+ENV NODE_OPTIONS=--openssl-legacy-provider
 
 COPY package*.json ./
 
@@ -11,14 +13,6 @@ COPY . .
 
 RUN npm run build
 
-# ---------- Production Stage ----------
-FROM nginx:alpine
+EXPOSE 3000
 
-RUN rm -rf /usr/share/nginx/html/*
-
-COPY --from=build /app/build /usr/share/nginx/html
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
-
+CMD ["npx", "serve", "-s", "build"]
