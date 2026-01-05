@@ -2,17 +2,15 @@ FROM node:18
 
 WORKDIR /app
 
-# Fix OpenSSL issue for webpack
-ENV NODE_OPTIONS=--openssl-legacy-provider
-
 COPY package*.json ./
-
 RUN npm install
 
 COPY . .
 
-RUN npm run build
+# 🔴 THIS LINE FIXES YOUR ISSUE
+RUN CI=false npm run build
 
+RUN npm install -g serve
 EXPOSE 3000
 
-CMD ["npx", "serve", "-s", "build"]
+CMD ["serve", "-s", "build", "-l", "3000"]
