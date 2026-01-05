@@ -1,9 +1,6 @@
-FROM node:18
+FROM node:20-alpine
 
 WORKDIR /app
-
-# Fix OpenSSL issue for webpack
-ENV NODE_OPTIONS=--openssl-legacy-provider
 
 COPY package*.json ./
 
@@ -13,7 +10,9 @@ COPY . .
 
 RUN npm run build
 
+RUN npm install -g serve
+
 EXPOSE 3000
 
-CMD ["npx", "serve", "-s", "build"]
+CMD ["serve", "-s", "build", "-l", "3000"]
 
