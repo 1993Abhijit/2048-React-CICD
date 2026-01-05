@@ -1,13 +1,13 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useThrottledCallback } from "use-debounce";
 
 import { useGame } from "./hooks/useGame";
 import { Board, animationDuration, tileCount } from "../Board";
 
-export const Game = () => {
+export const Game = (): JSX.Element => {
   const [tiles, moveLeft, moveRight, moveUp, moveDown] = useGame();
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent): void => {
     // disables page scrolling with keyboard arrows
     e.preventDefault();
 
