@@ -215,11 +215,11 @@ const moveUpHandler = moveUp;
 const moveDownHandler = moveDown;
 
 
-  return [
+return ([
   tileList,
   moveLeftHandler,
   moveRightHandler,
   moveUpHandler,
   moveDownHandler,
-] as const;
-};
+] as const);
+;
