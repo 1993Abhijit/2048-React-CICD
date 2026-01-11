@@ -209,7 +209,17 @@ export const useGame = () => {
 
   // --- Tile list ---
 
-  const tileList = byIds.map((tileId) => tiles[tileId]);
+  const moveLeftHandler = moveLeft;
+const moveRightHandler = moveRight;
+const moveUpHandler = moveUp;
+const moveDownHandler = moveDown;
 
-  return [tileList, moveLeft(), moveRight(), moveUp(), moveDown()] as const;
+
+  return [
+  tileList,
+  moveLeftHandler,
+  moveRightHandler,
+  moveUpHandler,
+  moveDownHandler,
+] as const;
 };
