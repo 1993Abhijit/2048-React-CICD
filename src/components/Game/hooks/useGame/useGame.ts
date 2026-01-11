@@ -15,6 +15,9 @@ export const useGame = () => {
   const [state, dispatch] = useReducer(GameReducer, initialState);
   const { tiles, byIds, hasChanged, inMotion } = state;
 
+  // tile list (🔥 THIS WAS MISSING)
+  const tileList = byIds.map((id) => tiles[id]);
+
   // --- Core tile operations ---
 
   const createTile = useCallback(
@@ -91,7 +94,7 @@ export const useGame = () => {
 
   type RetrieveTileIdsPerRowOrColumn = (rowOrColumnIndex: number) => number[];
   type CalculateTileIndex = (
-    tileIndex: number,
+    rowOrColumnIndex: number,
     tileInRowIndex: number,
     howManyMerges: number,
     maxIndexInRow: number
@@ -104,8 +107,8 @@ export const useGame = () => {
     dispatch({ type: "START_MOVE" });
     const maxIndex = tileCountPerRowOrColumn - 1;
 
-    for (let rowOrColumnIndex = 0; rowOrColumnIndex < tileCountPerRowOrColumn; rowOrColumnIndex++) {
-      const availableTileIds = retrieveTileIdsPerRowOrColumn(rowOrColumnIndex);
+    for (let index = 0; index < tileCountPerRowOrColumn; index++) {
+      const availableTileIds = retrieveTileIdsPerRowOrColumn(index);
 
       let previousTile: TileMeta | undefined;
       let mergedTilesCount = 0;
@@ -122,22 +125,23 @@ export const useGame = () => {
           throttledMergeTile(tile, previousTile);
           previousTile = undefined;
           mergedTilesCount += 1;
-          return updateTile(tile);
+          updateTile(tile);
+          return;
         }
 
         const tile: TileMeta = {
           ...currentTile,
           position: indexToPosition(
             calculateFirstFreeIndex(
-              rowOrColumnIndex,
+              index,
               nonEmptyTileIndex,
               mergedTilesCount,
               maxIndex
             )
           ),
         };
-        previousTile = tile;
 
+        previousTile = tile;
         if (didTileMove(currentTile, tile)) updateTile(tile);
       });
     }
@@ -145,54 +149,30 @@ export const useGame = () => {
     setTimeout(() => dispatch({ type: "END_MOVE" }), animationDuration);
   };
 
-  // --- Factories for directions ---
+  // --- Move factories ---
 
-  const createMoveFactory = (
-    isRow: boolean,
-    reverse: boolean,
-    calculateIndex: CalculateTileIndex
-  ) => () => {
-    const retrieveTileIds = (index: number) => {
-      const tileMap = retrieveTileMap();
-      const ids = Array.from({ length: tileCountPerRowOrColumn }, (_, i) =>
-        isRow
-          ? tileMap[index * tileCountPerRowOrColumn + i]
-          : tileMap[i * tileCountPerRowOrColumn + index]
-      );
-      return reverse ? ids.reverse().filter((id) => id !== 0) : ids.filter((id) => id !== 0);
+  const createMoveFactory =
+    (isRow: boolean, reverse: boolean, calculateIndex: CalculateTileIndex) =>
+    () => {
+      const retrieveTileIds = (index: number) => {
+        const tileMap = retrieveTileMap();
+        const ids = Array.from({ length: tileCountPerRowOrColumn }, (_, i) =>
+          isRow
+            ? tileMap[index * tileCountPerRowOrColumn + i]
+            : tileMap[i * tileCountPerRowOrColumn + index]
+        );
+        return (reverse ? ids.reverse() : ids).filter((id) => id !== 0);
+      };
+
+      return move.bind(null, retrieveTileIds, calculateIndex);
     };
-    return move.bind(null, retrieveTileIds, calculateIndex);
-  };
 
-  const moveLeft = createMoveFactory(
-    true,
-    false,
-    (_row, tileInRowIndex, howManyMerges) =>
-      tileInRowIndex - howManyMerges
-  );
+  const moveLeft = createMoveFactory(true, false, (_r, i, m) => i - m);
+  const moveRight = createMoveFactory(true, true, (_r, i, m, max) => max + m - i);
+  const moveUp = createMoveFactory(false, false, (_c, i, m) => i - m);
+  const moveDown = createMoveFactory(false, true, (_c, i, m, max) => max - i + m);
 
-  const moveRight = createMoveFactory(
-    true,
-    true,
-    (_row, tileInRowIndex, howManyMerges, maxIndex) =>
-      maxIndex + howManyMerges - tileInRowIndex
-  );
-
-  const moveUp = createMoveFactory(
-    false,
-    false,
-    (_col, tileInColIndex, howManyMerges) =>
-      tileInColIndex - howManyMerges
-  );
-
-  const moveDown = createMoveFactory(
-    false,
-    true,
-    (_col, tileInColIndex, howManyMerges, maxIndex) =>
-      maxIndex - tileInColIndex + howManyMerges
-  );
-
-  // --- Initial tile creation and random tile generation ---
+  // --- Initial tiles ---
 
   useEffect(() => {
     if (isInitialRender.current) {
@@ -207,19 +187,14 @@ export const useGame = () => {
     }
   }, [hasChanged, inMotion, createTile, generateRandomTile]);
 
-  // --- Tile list ---
+  // --- Return API (🔥 FIXED SYNTAX) ---
 
-  const moveLeftHandler = moveLeft;
-const moveRightHandler = moveRight;
-const moveUpHandler = moveUp;
-const moveDownHandler = moveDown;
+  return [
+    tileList,
+    moveLeft,
+    moveRight,
+    moveUp,
+    moveDown,
+  ] as const;
+};
 
-
-return ([
-  tileList,
-  moveLeftHandler,
-  moveRightHandler,
-  moveUpHandler,
-  moveDownHandler,
-] as const);
-;
