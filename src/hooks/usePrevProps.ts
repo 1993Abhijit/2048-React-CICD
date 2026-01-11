@@ -1,18 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useContext } from "react";
+import { BoardContext } from "../context/BoardContext";
 
 /**
- * `usePrevProps` stores the previous value of the prop.
- *
- * @link https://blog.logrocket.com/how-to-get-previous-props-state-with-react-hooks/
- * @param {K} value
- * @returns {K | undefined}
+ * Returns board-related values like container width and tile count
  */
-export const usePrevProps = <K = any>(value: K) => {
-  const ref = useRef<K>();
+export const useBoard = () => {
+  const { containerWidth, tileCount } = useContext(BoardContext);
 
-  useEffect(() => {
-    ref.current = value;
-  });
-
-  return ref.current;
+  return [containerWidth, tileCount] as [number, number];
 };
+

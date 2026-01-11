@@ -1,3 +1,14 @@
+import { useContext } from "react";
+import { BoardContext } from "../context/BoardContext";
+
+/**
+ * Returns board-related values like container width and tile count
+ */
+export const useBoard = () => {
+  const { containerWidth, tileCount } = useContext(BoardContext);
+
+  return [containerWidth, tileCount] as [number, number];
+};
 import React from "react";
 import ReactDOM from "react-dom";
 import { App } from "./App";

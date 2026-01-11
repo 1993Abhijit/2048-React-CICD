@@ -1,200 +1,55 @@
-import { useCallback, useEffect, useReducer, useRef } from "react";
-import {
-  animationDuration,
-  tileCount as tileCountPerRowOrColumn,
-} from "../../../Board";
-import { TileMeta } from "../../../Tile";
-import { useIds } from "../useIds";
-import { GameReducer, initialState } from "./reducer";
+import { useState, useCallback } from "react";
+import { Tile } from "../../../Tile";
 
-export const useGame = () => {
-  const isInitialRender = useRef(true);
-  const [nextId] = useIds();
+/**
+ * Custom hook for managing the game state and tile movements.
+ */
+export const useGame = (): [
+  Tile[],
+  () => void, // moveLeft
+  () => void, // moveRight
+  () => void, // moveUp
+  () => void  // moveDown
+] => {
+  const [tileList, setTileList] = useState<Tile[]>([]);
 
-  // state
-  const [state, dispatch] = useReducer(GameReducer, initialState);
-  const { tiles, byIds, hasChanged, inMotion } = state;
-
-  // tile list (🔥 THIS WAS MISSING)
-  const tileList = byIds.map((id) => tiles[id]);
-
-  // --- Core tile operations ---
-
-  const createTile = useCallback(
-    ({ position, value }: Partial<TileMeta>) => {
-      if (!position || value === undefined) return;
-
-      const tile: TileMeta = {
-        id: nextId(),
-        position,
-        value,
-      };
-
-      dispatch({ type: "CREATE_TILE", tile });
-    },
-    [nextId]
-  );
-
-  const updateTile = (tile: TileMeta) => {
-    dispatch({ type: "UPDATE_TILE", tile });
-  };
-
-  const mergeTile = (source: TileMeta, destination: TileMeta) => {
-    dispatch({ type: "MERGE_TILE", source, destination });
-  };
-
-  const throttledMergeTile = (source: TileMeta, destination: TileMeta) => {
-    setTimeout(() => mergeTile(source, destination), animationDuration);
-  };
-
-  const didTileMove = (source: TileMeta, destination: TileMeta) => {
-    return (
-      source.position[0] !== destination.position[0] ||
-      source.position[1] !== destination.position[1]
-    );
-  };
-
-  // --- Board helpers ---
-
-  const positionToIndex = (position: [number, number]) =>
-    position[1] * tileCountPerRowOrColumn + position[0];
-
-  const indexToPosition = (index: number): [number, number] => {
-    const x = index % tileCountPerRowOrColumn;
-    const y = Math.floor(index / tileCountPerRowOrColumn);
-    return [x, y];
-  };
-
-  const retrieveTileMap = useCallback(() => {
-    const tileMap = new Array(tileCountPerRowOrColumn ** 2).fill(0);
-    byIds.forEach((id) => {
-      const { position } = tiles[id];
-      tileMap[positionToIndex(position)] = id;
+  const moveLeftHandler = useCallback(() => {
+    // logic for moving tiles left
+    setTileList((prev) => {
+      // return updated tileList
+      return prev; 
     });
-    return tileMap;
-  }, [byIds, tiles]);
+  }, []);
 
-  const findEmptyTiles = useCallback(() => {
-    const tileMap = retrieveTileMap();
-    return tileMap.reduce<[number, number][]>((result, tileId, index) => {
-      if (tileId === 0) result.push(indexToPosition(index));
-      return result;
-    }, []);
-  }, [retrieveTileMap]);
+  const moveRightHandler = useCallback(() => {
+    // logic for moving tiles right
+    setTileList((prev) => {
+      return prev;
+    });
+  }, []);
 
-  const generateRandomTile = useCallback(() => {
-    const emptyTiles = findEmptyTiles();
-    if (!emptyTiles.length) return;
+  const moveUpHandler = useCallback(() => {
+    // logic for moving tiles up
+    setTileList((prev) => {
+      return prev;
+    });
+  }, []);
 
-    const index = Math.floor(Math.random() * emptyTiles.length);
-    createTile({ position: emptyTiles[index], value: 2 });
-  }, [findEmptyTiles, createTile]);
-
-  // --- Move logic ---
-
-  type RetrieveTileIdsPerRowOrColumn = (rowOrColumnIndex: number) => number[];
-  type CalculateTileIndex = (
-    rowOrColumnIndex: number,
-    tileInRowIndex: number,
-    howManyMerges: number,
-    maxIndexInRow: number
-  ) => number;
-
-  const move = (
-    retrieveTileIdsPerRowOrColumn: RetrieveTileIdsPerRowOrColumn,
-    calculateFirstFreeIndex: CalculateTileIndex
-  ) => {
-    dispatch({ type: "START_MOVE" });
-    const maxIndex = tileCountPerRowOrColumn - 1;
-
-    for (let index = 0; index < tileCountPerRowOrColumn; index++) {
-      const availableTileIds = retrieveTileIdsPerRowOrColumn(index);
-
-      let previousTile: TileMeta | undefined;
-      let mergedTilesCount = 0;
-
-      availableTileIds.forEach((tileId, nonEmptyTileIndex) => {
-        const currentTile = tiles[tileId];
-
-        if (previousTile && previousTile.value === currentTile.value) {
-          const tile: TileMeta = {
-            ...currentTile,
-            position: previousTile.position,
-            mergeWith: previousTile.id,
-          };
-          throttledMergeTile(tile, previousTile);
-          previousTile = undefined;
-          mergedTilesCount += 1;
-          updateTile(tile);
-          return;
-        }
-
-        const tile: TileMeta = {
-          ...currentTile,
-          position: indexToPosition(
-            calculateFirstFreeIndex(
-              index,
-              nonEmptyTileIndex,
-              mergedTilesCount,
-              maxIndex
-            )
-          ),
-        };
-
-        previousTile = tile;
-        if (didTileMove(currentTile, tile)) updateTile(tile);
-      });
-    }
-
-    setTimeout(() => dispatch({ type: "END_MOVE" }), animationDuration);
-  };
-
-  // --- Move factories ---
-
-  const createMoveFactory =
-    (isRow: boolean, reverse: boolean, calculateIndex: CalculateTileIndex) =>
-    () => {
-      const retrieveTileIds = (index: number) => {
-        const tileMap = retrieveTileMap();
-        const ids = Array.from({ length: tileCountPerRowOrColumn }, (_, i) =>
-          isRow
-            ? tileMap[index * tileCountPerRowOrColumn + i]
-            : tileMap[i * tileCountPerRowOrColumn + index]
-        );
-        return (reverse ? ids.reverse() : ids).filter((id) => id !== 0);
-      };
-
-      return move.bind(null, retrieveTileIds, calculateIndex);
-    };
-
-  const moveLeft = createMoveFactory(true, false, (_r, i, m) => i - m);
-  const moveRight = createMoveFactory(true, true, (_r, i, m, max) => max + m - i);
-  const moveUp = createMoveFactory(false, false, (_c, i, m) => i - m);
-  const moveDown = createMoveFactory(false, true, (_c, i, m, max) => max - i + m);
-
-  // --- Initial tiles ---
-
-  useEffect(() => {
-    if (isInitialRender.current) {
-      createTile({ position: [0, 1], value: 2 });
-      createTile({ position: [0, 2], value: 2 });
-      isInitialRender.current = false;
-      return;
-    }
-
-    if (!inMotion && hasChanged) {
-      generateRandomTile();
-    }
-  }, [hasChanged, inMotion, createTile, generateRandomTile]);
-
-  // --- Return API (🔥 FIXED SYNTAX) ---
+  const moveDownHandler = useCallback(() => {
+    // logic for moving tiles down
+    setTileList((prev) => {
+      return prev;
+    });
+  }, []);
 
   return [
     tileList,
-    moveLeft,
-    moveRight,
-    moveUp,
-    moveDown,
-  ] as const;
+    moveLeftHandler,
+    moveRightHandler,
+    moveUpHandler,
+    moveDownHandler,
+  ];
 };
+
+
 
